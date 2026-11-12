@@ -73,7 +73,7 @@ src/
   views/                ekrany (jeden plik na ekran) + panele (LoanPanel, SecuritySection)
 docs/                   dokumentacja (podręcznik jest też wyświetlany w aplikacji)
 public/                 ikony, prywatnosc.html (polityka prywatności dla Google)
-scripts/                konwersja arkusza flow4 do budzet.json (Python)
+scripts/                konwersja arkusza flow4 do budzet.json (Python); e2e/ – test synchronizacji i szyfrowania w przeglądarce
 worker/                 pośrednik logowania Cloudflare
 .github/workflows/      testy, budowanie i publikacja
 ```

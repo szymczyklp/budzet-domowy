@@ -6,11 +6,12 @@ import PasswordSheet from './PasswordSheet';
 const time = (d: Date) => d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
 /** Pasek stanu synchronizacji na górze ekranu. */
-export default function SyncBar() {
+export default function SyncBar({ onlyBlocking = false }: { onlyBlocking?: boolean }) {
   const s = useSync();
   const { internals } = useStore();
   const [ask, setAsk] = useState(false);
   if (s.status === 'disabled') return null;
+  if (onlyBlocking && s.status !== 'needs-password' && s.status !== 'plain-remote') return null;
 
   if (s.status === 'needs-password') {
     return (

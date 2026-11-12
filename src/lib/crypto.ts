@@ -15,6 +15,7 @@ export const MIN_ITERATIONS = 600_000;
 export const MAX_ITERATIONS = 5_000_000;
 const KEY_IDB = 'crypto-key';
 const PIN_IDB = 'crypto-pin';
+const PREV_IDB = 'crypto-key-prev';
 
 export interface Envelope {
   /** 99 – starsze wersje aplikacji odmówią zapisu („nowsza wersja”), zamiast nadpisać plik jawnym tekstem. */
@@ -109,7 +110,26 @@ export const loadKey = async (): Promise<KeyInfo | null> => {
   return current;
 };
 
+/**
+ * Poprzedni klucz – potrzebny tylko przez chwilę po zmianie hasła: jeśli druga osoba zdążyła zapisać plik
+ * starym kluczem, trzeba go jeszcze odczytać i scalić, zanim pójdzie wersja zaszyfrowana nowym.
+ */
+let previous: KeyInfo | null | undefined;
+const loadPrevious = async (): Promise<KeyInfo | null> => {
+  if (previous === undefined) previous = (await idbGet<KeyInfo>(PREV_IDB).catch(() => undefined)) ?? null;
+  return previous;
+};
+const dropPrevious = async () => {
+  previous = null;
+  await idbDelete(PREV_IDB).catch(() => undefined);
+};
+
 export const rememberKey = async (k: KeyInfo) => {
+  const old = await loadKey();
+  if (old && old.salt !== k.salt) {
+    previous = old;
+    await idbSet(PREV_IDB, old).catch(() => undefined);
+  }
   current = k;
   // niektóre przeglądarki nie zapiszą CryptoKey – wtedy hasło będzie potrzebne po ponownym uruchomieniu
   await idbSet(KEY_IDB, k).catch(() => undefined);
@@ -120,6 +140,7 @@ export const forgetKey = async () => {
   if (await isPinned()) await savePin('pinned');
   current = null;
   await idbDelete(KEY_IDB).catch(() => undefined);
+  await dropPrevious();
 };
 
 /* ---------- ochrona przed wyłączeniem szyfrowania z zewnątrz ---------- */
@@ -131,13 +152,13 @@ export const forgetKey = async () => {
  * ktoś z dostępem do Dysku mógłby podmienić plik na jawny z „nowszymi” ustawieniami bez szyfrowania
  * i dostać cały budżet jawnym tekstem przy następnej synchronizacji.
  */
-type PinState = 'enabling' | 'pinned' | null;
+type PinState = 'enabling' | 'pinned' | 'disabling' | null;
 let pin: PinState | undefined;
 
 const loadPin = async (): Promise<PinState> => {
   if (pin === undefined) {
     const v = await idbGet<unknown>(PIN_IDB).catch(() => null);
-    pin = v === 'enabling' || v === 'pinned' ? v : null;
+    pin = v === 'enabling' || v === 'pinned' || v === 'disabling' ? v : null;
   }
   return pin;
 };
@@ -146,10 +167,13 @@ const savePin = async (v: PinState) => {
   await (v ? idbSet(PIN_IDB, v) : idbDelete(PIN_IDB)).catch(() => undefined);
 };
 
-/** Urządzenie z kluczem (sprzed tej ochrony) też liczy się jako przypięte – chyba że właśnie włącza szyfrowanie. */
+/**
+ * Urządzenie z kluczem (sprzed tej ochrony) też liczy się jako przypięte – chyba że właśnie włącza
+ * albo wyłącza szyfrowanie (stany przejściowe, do pierwszego udanego zapisu na Dysku).
+ */
 export const isPinned = async (): Promise<boolean> => {
   const p = await loadPin();
-  return p === 'pinned' || (p !== 'enabling' && !!(await loadKey()));
+  return p === 'pinned' || (p === null && !!(await loadKey()));
 };
 
 /** Zaszyfrowany plik był na Dysku (pobrany albo właśnie wysłany). */
@@ -157,9 +181,23 @@ export const pinEncryption = async () => {
   if ((await loadPin()) !== 'pinned') await savePin('pinned');
 };
 
-/** Po udanym zapisie na Dysku: jeśli poszła zaszyfrowana wersja, od teraz jawny plik jest podejrzany. */
+/**
+ * Po udanym zapisie na Dysku. Poszła wersja zaszyfrowana – od teraz jawny plik jest podejrzany.
+ * Poszła jawna w trakcie wyłączania szyfrowania – wyłączanie zakończone, klucz nie jest już potrzebny.
+ */
 export const confirmUploaded = async (doc: BudgetDoc) => {
-  if (doc.settings.main?.encryption) await pinEncryption();
+  if (doc.settings.main?.encryption) {
+    await pinEncryption();
+    await dropPrevious();
+  } else if ((await loadPin()) === 'disabling') await unpinEncryption();
+};
+
+/**
+ * Wyłączanie szyfrowania na tym urządzeniu. Klucz zostaje do pierwszego udanego jawnego zapisu:
+ * jeśli druga osoba zdążyła w międzyczasie zapisać zaszyfrowany plik, trzeba go jeszcze odczytać i scalić.
+ */
+export const beginDisabling = async () => {
+  await savePin('disabling');
 };
 
 /**
@@ -175,6 +213,7 @@ export const unpinEncryption = async () => {
   await savePin(null);
   current = null;
   await idbDelete(KEY_IDB).catch(() => undefined);
+  await dropPrevious();
 };
 
 /** Plik na Dysku jest jawny, choć to urządzenie zna go jako zaszyfrowany (albo dane do wysłania straciły ustawienie szyfrowania). */
@@ -205,10 +244,11 @@ export const readRemote = async (text: string): Promise<BudgetDoc> => {
     if (await isPinned()) throw new EncryptionDowngrade();
     return parseDoc(text);
   }
-  await pinEncryption();
-  const k = await loadKey();
-  if (!k || k.salt !== data.kdf?.salt) throw new PasswordNeeded(data);
-  checkEnvelope(data, 1);
+  checkEnvelope(data, 1); // śmieci udające kopertę nie przypinają szyfrowania i nie pytają o hasło
+  if ((await loadPin()) !== 'disabling') await pinEncryption();
+  const salt = data.kdf.salt;
+  const k = [await loadKey(), await loadPrevious()].find((x) => x && x.salt === salt);
+  if (!k) throw new PasswordNeeded(data);
   return decryptEnvelope(data, k);
 };
 

@@ -3,8 +3,8 @@ import type { BudgetDoc } from './types';
 import { emptyDoc } from './types';
 import { mergeDocs } from './merge';
 import {
-  BadEnvelope, beginEnabling, checkKdf, confirmUploaded, deriveKey, encryptDoc, EncryptionDowngrade, forgetKey, keepEncryption, keyFromSettings,
-  newSalt, PasswordNeeded, readRemote, rememberKey, unlockWith, unpinEncryption, writeRemote,
+  BadEnvelope, beginDisabling, beginEnabling, checkKdf, confirmUploaded, deriveKey, encryptDoc, EncryptionDowngrade, forgetKey, isPinned, keepEncryption, keyFromSettings,
+  loadKey, newSalt, PasswordNeeded, readRemote, rememberKey, unlockWith, unpinEncryption, writeRemote,
 } from './crypto';
 import { parseDoc } from './backup';
 import { sanitizeDoc } from './sanitize';
@@ -95,6 +95,43 @@ describe('podmiana zaszyfrowanego pliku na jawny (downgrade)', () => {
     expect(dev.doc.settings.main.encryption).toBeUndefined();
   });
 
+  it('wyłączanie szyfrowania: zaszyfrowana zmiana drugiej osoby jest najpierw scalana, potem idzie jawny plik', async () => {
+    const { k, dev, drive } = await encryptedSetup();
+    // druga osoba zapisała coś tym samym kluczem tuż przed wyłączeniem
+    const other = { ...dev.doc, categories: { ...dev.doc.categories, n: { id: 'n', name: 'NOWA', order: 1, ...meta } } };
+    drive.text = JSON.stringify(await encryptDoc(other, k));
+    drive.version++;
+    await beginDisabling();
+    const main = { ...dev.doc.settings.main, updatedAt: '2026-12-01T00:00:00.000Z' };
+    delete main.encryption;
+    dev.doc = { ...dev.doc, settings: { main } };
+    dev.dirty = true; dev.changes++;
+    await dev.sync(drive);
+    expect(drive.text).toContain('TAJNA-PENSJA'); // jawnie – tak chciał użytkownik
+    expect(dev.doc.categories.n).toBeTruthy();
+    expect(await isPinned()).toBe(false);
+    expect(await loadKey()).toBeNull();
+  });
+
+  it('zmiana hasła: plik zapisany starym kluczem przez drugą osobę daje się jeszcze odczytać', async () => {
+    const { k, dev, drive } = await encryptedSetup();
+    const other = { ...dev.doc, categories: { ...dev.doc.categories, n: { id: 'n', name: 'NOWA', order: 1, ...meta } } };
+    drive.text = JSON.stringify(await encryptDoc(other, k));
+    drive.version++;
+    const k2 = await deriveKey('nowe haslo 456', newSalt(), 1000);
+    await rememberKey(k2);
+    dev.doc = { ...dev.doc, settings: { main: { ...dev.doc.settings.main, encryption: { salt: k2.salt, iterations: 1000 }, updatedAt: '2026-12-01T00:00:00.000Z' } } };
+    dev.dirty = true; dev.changes++;
+    await dev.sync(drive);
+    expect(dev.doc.categories.n).toBeTruthy();
+    const env = JSON.parse(drive.text);
+    expect(env.kdf.salt).toBe(k2.salt);
+    // stary klucz nie jest już potrzebny – plik zapisany nim ponownie wymaga hasła
+    drive.text = JSON.stringify(await encryptDoc(other, k));
+    drive.version++;
+    await expect(dev.sync(drive)).rejects.toBeInstanceOf(PasswordNeeded);
+  });
+
   it('podstawione słabe parametry klucza są odrzucane', async () => {
     expect(() => checkKdf(newSalt(), 1)).toThrow(BadEnvelope);
     expect(() => checkKdf(newSalt(), 2_000_000_000)).toThrow(BadEnvelope);
@@ -114,7 +151,11 @@ describe('podmiana zaszyfrowanego pliku na jawny (downgrade)', () => {
       await expect(unlockWith('haslo haslo', broken as never, 1000)).rejects.toBeInstanceOf(BadEnvelope);
     }
     await forgetKey();
-    await expect(readRemote(JSON.stringify({ ...env, kdf: null }))).rejects.toBeInstanceOf(PasswordNeeded);
+    await unpinEncryption();
+    await expect(readRemote(JSON.stringify({ ...env, kdf: null }))).rejects.toBeInstanceOf(BadEnvelope);
+    expect(await isPinned()).toBe(false); // śmieć nie przypina szyfrowania
+    await expect(readRemote(JSON.stringify(env))).rejects.toBeInstanceOf(PasswordNeeded);
+    expect(await isPinned()).toBe(true);
   });
 
   it('kopia zapasowa nie zmienia szyfrowania', () => {

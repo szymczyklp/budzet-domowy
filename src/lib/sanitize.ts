@@ -162,6 +162,7 @@ export const sanitizeDoc = (doc: BudgetDoc, report?: SanitizeReport): BudgetDoc 
     const clean: Record<string, Rec> = {};
     if (isObj(source)) {
       for (const [id, rec] of Object.entries(source)) {
+        if (id === '__proto__' || id === 'constructor' || id === 'prototype') continue;
         // brak pola id w rekordzie – przyjmujemy klucz mapy
         const withId = KEYED_BY_ID.has(name) && isObj(rec) && (rec.id === undefined || rec.id === null) ? { ...rec, id } : rec;
         const ok = id.length <= 500 ? shape(withId, s) : null;

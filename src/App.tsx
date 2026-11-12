@@ -105,7 +105,8 @@ export default function App() {
   return (
     <>
       <main className={`page${hidden ? ' amounts-hidden' : ''}`} key={hidden ? 'h' : 'v'}>
-        {tab !== 'ustawienia' && <SyncBar />}
+        {/* w Ustawieniach stan synchronizacji pokazuje sekcja Dysku – pasek tylko, gdy trzeba decyzji */}
+        <SyncBar onlyBlocking={tab === 'ustawienia'} />
         {empty && !worksWhenEmpty.includes(tab) ? (
           <section className="empty">
             <h1>Budżet jest pusty</h1>

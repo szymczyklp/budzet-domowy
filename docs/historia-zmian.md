@@ -4,6 +4,12 @@ Najważniejsze etapy rozwoju (szczegóły w historii commitów).
 
 ## Listopad 2026
 
+**Trzeci przegląd (bezpieczeństwo i jakość)** – test w przeglądarce na dwóch urządzeniach z podstawionym Dyskiem
+(`scripts/e2e/szyfrowanie.cjs`) i poprawki tego, co wykrył: drugie urządzenie nie może już przez pomyłkę ustawić
+własnego hasła zamiast podać istniejące; ostrzeżenia o haśle i o jawnym pliku widać także w Ustawieniach; zmiana
+i wyłączenie hasła działają, gdy druga osoba zapisze plik w tej samej chwili; śmieci udające zaszyfrowany plik
+nie przypinają szyfrowania. Aktualizacja zależności (React 19.3, Vite 8, TypeScript 7, pdf.js 6.5).
+
 **Drugi przegląd bezpieczeństwa** – ochrona przed podmianą zaszyfrowanego pliku na jawny (przypięcie szyfrowania,
 decyzja na pasku synchronizacji), kontrola parametrów klucza z pliku, kopia z pliku nie zmienia szyfrowania;
 kontrola kształtu rekordów z plików i ekran błędu z kopią danych; odporność importu na spreparowane pliki (limity,

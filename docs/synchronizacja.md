@@ -121,6 +121,10 @@ urządzenie wysłałoby cały budżet jawnym tekstem. Dlatego:
 - Przypięte urządzenie **nie scala jawnego pliku** z Dysku i **nie wysyła danych jawnie** (`EncryptionDowngrade`).
   Pasek pokazuje wybór: **Zostaw szyfrowanie** (plik na Dysku jest nadpisywany zaszyfrowanymi danymi z urządzenia,
   bez scalania z podmienionym plikiem) albo **Wyłączyliśmy je celowo** (zdjęcie przypięcia i zwykła synchronizacja).
+- Przypina tylko poprawnie zbudowany zaszyfrowany plik – śmieci udające go dają błąd „plik uszkodzony albo
+  podmieniony” i niczego nie zmieniają.
+- Gdy plik czeka na hasło albo na decyzję, sekcja „Hasło do danych” nie pozwala ustawić nowego hasła (drugie
+  urządzenie ma podać istniejące, a nie tworzyć własne).
 - Przypięcie zdejmuje tylko świadoma decyzja na tym urządzeniu: „Wyłącz szyfrowanie”, potwierdzenie na pasku,
   „Wyczyść dane”.
 - **Parametry klucza z pliku są sprawdzane** (`checkKdf`, `checkEnvelope`): liczba iteracji 600 000 – 5 000 000,
@@ -133,8 +137,14 @@ Czego to nie obejmuje: urządzenie, które nigdy nie widziało zaszyfrowanego pl
 punktu odniesienia. Osoba z prawem zapisu na Dysku może też zawsze uszkodzić plik albo cofnąć go do starszej
 zaszyfrowanej wersji – scalanie rekord po rekordzie i tak zachowa nowsze dane z urządzeń.
 
-**Znane ograniczenie:** hasło zmieniaj, gdy oba urządzenia są zsynchronizowane. Jeśli druga osoba zapisze plik
-starym kluczem w chwili zmiany hasła, urządzenie zmieniające hasło poprosi najpierw o stare hasło.
+**Zmiana i wyłączenie hasła przy równoczesnym zapisie drugiej osoby.** Po zmianie hasła urządzenie trzyma jeszcze
+poprzedni klucz (`crypto-key-prev`), a przy wyłączaniu – dotychczasowy (stan „wyłączanie”), dopóki nie uda się
+pierwszy zapis nowej wersji pliku. Dzięki temu plik zapisany w międzyczasie przez drugą osobę starym kluczem jest
+najpierw odczytywany i scalany, a nie blokuje synchronizacji.
+
+**Znane ograniczenie:** gdy plik na Dysku jest jawny, a ustawienia wymagają hasła (rzadki stan po przerwanym
+włączaniu albo po „Zostaw szyfrowanie” na urządzeniu bez klucza), wpisanego hasła nie ma na czym sprawdzić –
+literówka zaszyfruje plik błędnym hasłem. Wtedy na tym samym urządzeniu wybierz „Zmień hasło” i ustaw właściwe.
 
 ## Blokada aplikacji (WebAuthn)
 

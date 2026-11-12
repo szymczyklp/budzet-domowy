@@ -79,7 +79,7 @@ export default function SettingsView() {
             ? 'Przy scalaniu dla każdego rekordu zostaje nowsza wersja – nic nie ginie.'
             : 'Zastąpienie przywraca stan z pliku: rekordy spoza kopii są usuwane – także na Dysku i u drugiej osoby.'}
         </p>
-        <input ref={file} type="file" accept="application/json,.json" onChange={(e) => onFile(e.target.files?.[0])} />
+        <input ref={file} type="file" aria-label="Plik kopii zapasowej (JSON)" accept="application/json,.json" onChange={(e) => onFile(e.target.files?.[0])} />
         {msg && <p className="ok">{msg}</p>}
         {err && <p className="error">{err}</p>}
       </section>

@@ -28,6 +28,14 @@ npm test          # testy jednostkowe (muszą przejść – inaczej publikacja s
 npm run build     # tsc --noEmit + build
 ```
 
+Test w przeglądarce dla synchronizacji i szyfrowania (dwa „urządzenia”, podstawiony Dysk Google, bez prawdziwego
+konta) – po zmianach w `lib/crypto.ts`, `sync/` albo sekcji hasła w Ustawieniach:
+
+```bash
+npm run build && npx vite preview --port 4173 &
+node scripts/e2e/szyfrowanie.cjs      # wymaga pakietu playwright z Chromium; nie działa w publikacji
+```
+
 Przed wypchnięciem zmian w interfejsie sprawdź ekran w przeglądarce w szerokości telefonu (np. `npm run preview`
 i narzędzia deweloperskie albo Playwright). Dane do sprawdzania wczytuj z własnej kopii lokalnie – nigdy nie
 dołączaj ich do repozytorium ani testów.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../lib/store';
-import { beginEnabling, deriveKey, forgetKey, ITERATIONS, loadKey, newSalt, rememberKey, unpinEncryption } from '../lib/crypto';
+import { beginDisabling, beginEnabling, deriveKey, forgetKey, ITERATIONS, loadKey, newSalt, rememberKey } from '../lib/crypto';
 import { disableLock, enableLock, lockConf, lockSupported, setLockAfter, verifyLock } from '../lib/applock';
 import { useSync } from '../sync/SyncProvider';
 import PasswordSheet from '../sync/PasswordSheet';
@@ -26,6 +26,10 @@ function EncryptionPanel() {
   const [pw2, setPw2] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  /** Plik na Dysku czeka na hasło albo na decyzję – w tym stanie nie zmieniamy ustawień szyfrowania. */
+  const waiting = sync.status === 'needs-password';
+  const blocked = waiting || sync.status === 'plain-remote';
 
   useEffect(() => {
     void loadKey().then((k) => setKnows(!!k && !!enc && k.salt === enc.salt));
@@ -53,7 +57,7 @@ function EncryptionPanel() {
 
   const disable = async () => {
     if (!confirm('Wyłączyć szyfrowanie? Plik na Dysku zostanie zapisany jawnym tekstem (JSON).')) return;
-    await unpinEncryption();
+    await beginDisabling();
     update((d, stamp) => {
       const main = { ...(d.settings.main ?? { id: 'main' }), id: 'main' };
       delete main.encryption;
@@ -64,7 +68,12 @@ function EncryptionPanel() {
   return (
     <section className="panel">
       <h2>Hasło do danych na Dysku <HelpLink topic="bezpieczeństwo-i-prywatność" /></h2>
-      {!enc ? (
+      {waiting ? (
+        <p className="muted">
+          Plik na Dysku jest zaszyfrowany, a to urządzenie nie zna jeszcze hasła. Podaj hasło ustawione na pierwszym
+          urządzeniu – nie ustawiaj tutaj nowego.
+        </p>
+      ) : !enc ? (
         <p className="muted">
           Plik na Dysku Google jest teraz zwykłym JSON-em – widzi go każdy, kto ma do niego dostęp. Po ustawieniu hasła
           aplikacja szyfruje go (AES-256). Hasło wpisujesz raz na każdym urządzeniu – potem jest zapamiętane.
@@ -96,11 +105,12 @@ function EncryptionPanel() {
         </form>
       ) : (
         <p className="row-actions">
-          {!enc && <button type="button" className="primary" onClick={() => setMode('set')}>Ustaw hasło</button>}
-          {enc && knows === false && <button type="button" className="primary" onClick={() => setMode('unlock')}>Podaj hasło</button>}
-          {enc && knows && <button type="button" onClick={() => setMode('set')}>Zmień hasło</button>}
+          {waiting && <button type="button" className="primary" onClick={() => setMode('unlock')}>Podaj hasło</button>}
+          {!enc && !blocked && <button type="button" className="primary" onClick={() => setMode('set')}>Ustaw hasło</button>}
+          {enc && knows === false && !waiting && <button type="button" className="primary" onClick={() => setMode('unlock')}>Podaj hasło</button>}
+          {enc && knows && !blocked && <button type="button" onClick={() => setMode('set')}>Zmień hasło</button>}
           {enc && knows && <button type="button" onClick={() => { void forgetKey().then(() => setKnows(false)); }}>Zapomnij na tym urządzeniu</button>}
-          {enc && knows && <button type="button" className="danger" onClick={() => void disable()}>Wyłącz szyfrowanie</button>}
+          {enc && knows && !blocked && <button type="button" className="danger" onClick={() => void disable()}>Wyłącz szyfrowanie</button>}
         </p>
       )}
       {mode === 'unlock' && <PasswordSheet onClose={() => setMode('idle')} />}

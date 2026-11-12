@@ -199,8 +199,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         const conf = confRef.current;
         let env = state.envelope;
         if (!env && conf) {
+          const text = await g.downloadText(conf.fileId);
           let raw: unknown;
-          try { raw = JSON.parse(await g.downloadText(conf.fileId)); } catch { throw new Error('Plik na Dysku nie jest poprawnym JSON-em.'); }
+          try { raw = JSON.parse(text); } catch { throw new Error('Plik na Dysku nie jest poprawnym JSON-em.'); }
           if (isEnvelope(raw)) env = raw;
         }
         if (env) await unlockWith(password, env);
@@ -215,7 +216,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       },
       keepEncrypted: async () => {
         const conf = confRef.current;
-        if (!conf) return;
+        if (!conf || running.current) return;
+        running.current = true;
         try {
           patch({ status: 'syncing', error: undefined });
           const startCount = internals.changeCount();
@@ -225,6 +227,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           patch({ status: 'ok', lastSync: new Date() });
         } catch (e) {
           handleError(e);
+        } finally {
+          running.current = false;
         }
       },
       acceptPlain: async () => {

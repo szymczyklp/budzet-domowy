@@ -41,6 +41,7 @@ describe('szyfrowanie pliku na Dysku', () => {
     expect(isEnvelope(out)).toBe(true);
     expect((await readRemote(JSON.stringify(out))).categories.c.name).toBe('RACHUNKI');
     // inny klucz (zmiana hasła na innym urządzeniu) – znowu pytamy o hasło
+    await forgetKey();
     await rememberKey(await deriveKey('inne', newSalt(), 1000));
     await expect(readRemote(JSON.stringify(out))).rejects.toBeInstanceOf(PasswordNeeded);
   });
