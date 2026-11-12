@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budżet domowy – polityka prywatności</title>
+<style>
+  :root { color-scheme: light dark; --ink: #1e2b3a; --paper: #f5f6f1; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e6e9e2; --paper: #141a21; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-family: Georgia, serif; font-weight: 600; }
+  h2 { font-size: 1.1rem; margin-top: 2em; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Budżet domowy – polityka prywatności</h1>
+  <p>Ostatnia aktualizacja: 11 listopada 2026.</p>
+  <p>Budżet domowy to prywatna aplikacja do planowania domowych finansów, działająca w przeglądarce. Autor: Łukasz Szymczyk.
+     Kod źródłowy jest publiczny: <a href="https://github.com/szymczyklp/budzet-domowy">github.com/szymczyklp/budzet-domowy</a>.</p>
+
+  <h2>Jakie dane przetwarza aplikacja</h2>
+  <p>Dane budżetu (pozycje, kwoty, transakcje z wgranych wyciągów) wpisuje lub wgrywa użytkownik. Są przechowywane
+     wyłącznie w przeglądarce użytkownika (IndexedDB) oraz – jeśli użytkownik połączy aplikację z Dyskiem Google –
+     w jednym pliku na jego własnym Dysku Google. Autor aplikacji nie ma do nich dostępu i nie prowadzi serwera z danymi.</p>
+
+  <h2>Dostęp do Google</h2>
+  <p>Aplikacja prosi wyłącznie o zakres <code>https://www.googleapis.com/auth/drive.file</code>: widzi tylko pliki, które sama
+     utworzyła albo które użytkownik wskazał jej w oknie wyboru plików Google. Nie ma dostępu do pozostałych plików na Dysku.
+     Dane z interfejsów Google są używane wyłącznie do zapisu i odczytu pliku budżetu użytkownika; nie są przekazywane
+     osobom trzecim, sprzedawane ani używane do reklam czy trenowania modeli. Użycie danych z interfejsów Google jest zgodne
+     z <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+     w tym z wymogami Limited Use.</p>
+  <p>Do odświeżania logowania aplikacja może korzystać z pośrednika (Cloudflare Worker), który wymienia kod logowania na
+     tokeny Google. Pośrednik nie przechowuje tokenów ani danych budżetu.</p>
+
+  <h2>Szyfrowanie</h2>
+  <p>Użytkownik może zaszyfrować plik na Dysku własnym hasłem (AES-256). Hasło nie jest nigdzie zapisywane ani przesyłane.</p>
+
+  <h2>Usunięcie danych</h2>
+  <p>Dane w przeglądarce usuwa przycisk „Wyczyść dane na tym urządzeniu” w Ustawieniach aplikacji. Plik na Dysku Google
+     użytkownik usuwa sam w Dysku Google. Dostęp aplikacji do konta Google można cofnąć na stronie
+     <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+
+  <h2>Kontakt</h2>
+  <p>Przez profil autora na GitHubie: <a href="https://github.com/szymczyklp">github.com/szymczyklp</a>.</p>
+</main>
+</body>
+</html>

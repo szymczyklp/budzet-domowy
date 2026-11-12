@@ -1,0 +1,9 @@
+# Wdrożenie z terminala (opcjonalnie): npx wrangler deploy
+# Sekrety: npx wrangler secret put GOOGLE_CLIENT_SECRET / SEALING_KEY
+name = "budzet-auth"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://szymczyklp.github.io,http://localhost:5173"
+GOOGLE_CLIENT_ID = "98071451897-2esbr917roqbab8unetdmd1vq934fb7d.apps.googleusercontent.com"

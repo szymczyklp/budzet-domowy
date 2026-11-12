@@ -1,0 +1,16 @@
+# Comiesięczne propozycje aktualizacji zależności i akcji (akcje są przypięte do konkretnych commitów).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      zaleznosci:
+        patterns: ['*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2

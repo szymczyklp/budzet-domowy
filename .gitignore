@@ -1,0 +1,21 @@
+# zależności i build
+node_modules/
+dist/
+dev-dist/
+coverage/
+
+# DANE – nigdy nie trafiają do repozytorium
+data/
+*.xlsx
+*.xls
+*.csv
+budzet*.json
+backup*.json
+
+# system / edytory
+.DS_Store
+.vscode/
+.idea/
+*.log
+__pycache__/
+.env*
